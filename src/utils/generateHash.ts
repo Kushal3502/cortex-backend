@@ -1,10 +1,6 @@
 import jwt from "jsonwebtoken";
 import { config } from "../config/config";
-
-interface UserPayload {
-  id: string;
-  email: string;
-}
+import { UserPayload } from "../types/auth";
 
 export const generateAccessToken = (payload: UserPayload) => {
   // @ts-ignore

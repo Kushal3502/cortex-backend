@@ -43,7 +43,7 @@ export const registerUser = async (req: Request, res: Response) => {
 
     res.status(200).json(new ApiResponse(200, "User created successfully"));
   } catch (error: any) {
-    console.log("Register user error :: ", error.response.message);
+    console.log("Register user error :: ", error);
     res.status(500).json(new ApiResponse(500, "Register user error"));
   }
 };
@@ -68,7 +68,7 @@ export const loginUser = async (req: Request, res: Response) => {
 
     // check for password
     // @ts-ignore
-    const isPasswordCorrect = bcrypt.compare(password, user.password);
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
 
     if (!isPasswordCorrect) {
       res.status(404).json(new ApiResponse(404, "Invalid credentials."));
@@ -106,13 +106,53 @@ export const loginUser = async (req: Request, res: Response) => {
       })
     );
   } catch (error: any) {
-    console.log("Login user error :: ", error.response.message);
+    console.log("Login user error :: ", error);
     res.status(500).json(new ApiResponse(500, "Login user error"));
   }
 };
 
-export const logoutUser = async (req: Request, res: Response) => {};
+export const logoutUser = async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json(new ApiResponse(401, "Unauthorized"));
+    }
+
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { refreshToken: null },
+    });
+
+    res
+      .clearCookie("accessToken")
+      .clearCookie("refreshToken")
+      .status(200)
+      .json(new ApiResponse(200, "Logged out successfully"));
+  } catch (error: any) {
+    console.error("Logout error :: ", error);
+    res.status(500).json(new ApiResponse(500, "Logout error"));
+  }
+};
 
 export const googleLogin = async (req: Request, res: Response) => {};
 
-export const currentUser = async (req: Request, res: Response) => {};
+export const currentUser = async (req: Request, res: Response) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user?.id },
+    });
+
+    if (!user)
+      return res.status(400).json(new ApiResponse(400, "User not found"));
+
+    return res.status(200).json(
+      new ApiResponse(200, "Current user fetched successfully", {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      })
+    );
+  } catch (error) {
+    console.error("Current user fetch error :: ", error);
+    res.status(500).json(new ApiResponse(500, "Current user fetch error"));
+  }
+};
