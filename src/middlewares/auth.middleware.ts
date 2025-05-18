@@ -1,9 +1,6 @@
 import { NextFunction, Request, Response } from "express";
-import jwt from "jsonwebtoken";
-import { config } from "../config/config";
-import { prisma } from "../lib/prisma";
-import { UserPayload } from "../types/auth";
 import ApiResponse from "../utils/apiResponse";
+import { supabase } from "../lib/supabaseClient";
 
 export const authMiddleware = async (
   req: Request,
@@ -11,40 +8,25 @@ export const authMiddleware = async (
   next: NextFunction
 ) => {
   try {
-    // retrieve token from headers or cookies
-    const token =
-      req.cookies.accessToken ||
-      req.header("Authorization")?.replace("Bearer ", "");
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(" ")[1];
 
-    // if token not found -> user is not authenticated
     if (!token)
-      return res.status(404).json(new ApiResponse(404, "Unauthorized request"));
+      return res.status(404).json(new ApiResponse(404, "Token not found"));
 
-    // decode token
-    const decodedToken = jwt.verify(
-      token,
-      config.accessTokenSecret
-    ) as UserPayload;
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
 
-    // find user from decoded info
-    const user = await prisma.user.findUnique({
-      where: {
-        id: decodedToken.id,
-        email: decodedToken.email,
-      },
-    });
+    if (!user || error)
+      return res.status(404).json(new ApiResponse(404, "Unauthorized access."));
 
-    if (!user)
-      return res.status(404).json(new ApiResponse(404, "Unauthorized request"));
-
-    req.user = {
-      id: user.id,
-      email: user.email,
-    };
+    (req as any).user = user;
 
     next();
-  } catch (error: any) {
+  } catch (error) {
     console.log("Auth middleware error :: ", error);
-    res.status(500).json(new ApiResponse(500, "Auth middleware error"));
+    return res.status(500).json(new ApiResponse(500, "Auth middleware error"));
   }
 };
