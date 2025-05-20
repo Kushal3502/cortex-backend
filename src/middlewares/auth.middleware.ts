@@ -17,7 +17,9 @@ export const authMiddleware = async (
     const {
       data: { user },
       error,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getUser(token);
+
+    console.log("User :: ", user);
 
     if (!user || error)
       return res.status(404).json(new ApiResponse(404, "Unauthorized access."));

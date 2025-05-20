@@ -11,8 +11,8 @@ app.use(express.json());
 app.use(cookieParser());
 
 // routes
-import userRouter from "./routes/user.routes";
+import projectRouter from "./routes/projects.routes";
 
-app.use("/api/v1/user", userRouter);
+app.use("/api/v1/project", projectRouter);
 
 export default app;
