@@ -14,6 +14,51 @@ model Projects {
   description String?
   ownerId     String
 
+  notes       Notes[]
+  notesChunks NotesChunk[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+}
+
+model Notes {
+  id      String  @id @default(uuid())
+  title   String
+  type    String
+  content String?
+  fileUrl String?
+  link    String?
+
+  ownerId String
+
+  projectId String
+  project   Projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  notesChunks NotesChunk[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([ownerId])
+}
+
+model NotesChunk {
+  id        String   @id @default(uuid())
+  userId    String
+  chunkText String
+  embedding Json
+  createdAt DateTime @default(now())
+
+  noteId    String @map("resourceId")
+  projectId String
+
+  note    Notes    @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  project Projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([noteId])
+  @@index([projectId])
+  @@index([userId])
 }
